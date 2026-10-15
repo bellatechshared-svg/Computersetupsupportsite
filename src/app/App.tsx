@@ -48,6 +48,28 @@ async function submitToBackend(data: any) {
   }
 }
 
+const SUPPORT_EMAIL = 'support@indianapcservices.com';
+
+// Delivers submissions to the support inbox via FormSubmit.
+// Note: the very first submission triggers a one-time activation email to SUPPORT_EMAIL.
+async function sendToSupportEmail(subject: string, fields: Record<string, string>) {
+  try {
+    const response = await fetch(`https://formsubmit.co/ajax/${SUPPORT_EMAIL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ _subject: subject, _template: 'table', _captcha: 'false', ...fields })
+    });
+    const result = await response.json();
+    return response.ok && String(result.success) === 'true';
+  } catch (error) {
+    console.error("Email error:", error);
+    return false;
+  }
+}
+
 // --- Components ---
 
 const ChatWidget = () => {
@@ -77,12 +99,13 @@ const ChatWidget = () => {
 
     // Send to backend
     submitToBackend({ type: 'chat', message: text, timestamp: new Date().toISOString() });
+    sendToSupportEmail('New Website Chat Message', { message: text });
 
     // Simulate response
     setTimeout(() => {
       setMessages(prev => [...prev, { 
         id: Date.now() + 1, 
-        text: "Thanks. A technician has been notified. For immediate assistance, please call (463) 271-0114.", 
+        text: "Thanks. A technician has been notified. For immediate assistance, please call (317) 379-3141.", 
         sender: 'agent' 
       }]);
     }, 1500);
@@ -187,14 +210,14 @@ const Hero = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a 
-              href="tel:+14632710114" 
+              href="tel:+13173793141" 
               className="w-full sm:w-auto flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg hover:shadow-orange-500/20"
             >
               <Phone className="w-6 h-6" />
               Call Now
             </a>
             <a 
-              href="sms:+14632710114" 
+              href="sms:+13173793141" 
               className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-slate-900 hover:bg-slate-100 font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-lg"
             >
               <MessageSquare className="w-6 h-6" />
@@ -398,10 +421,22 @@ const ContactForm = () => {
   
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
-    await submitToBackend({ ...data, type: 'form_submission' });
+    const [emailSent] = await Promise.all([
+      sendToSupportEmail(`New Service Request from ${data.name}`, {
+        name: data.name,
+        location: data.location,
+        preferred_time: data.time || 'Not specified',
+        details: data.details
+      }),
+      submitToBackend({ ...data, type: 'form_submission' })
+    ]);
     setIsSubmitting(false);
-    alert("Request Sent! We will contact you shortly.");
-    reset();
+    if (emailSent) {
+      alert("Request Sent! We will contact you shortly.");
+      reset();
+    } else {
+      alert("Sorry, your request could not be sent. Please call or text (317) 379-3141.");
+    }
   };
 
   return (
@@ -416,13 +451,13 @@ const ContactForm = () => {
               </p>
               
               <div className="space-y-6">
-                <a href="tel:+14632710114" className="flex items-center gap-4 hover:text-orange-400 transition-colors">
+                <a href="tel:+13173793141" className="flex items-center gap-4 hover:text-orange-400 transition-colors">
                   <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 uppercase tracking-wider">Call or Text</p>
-                    <p className="font-bold text-lg">(463) 271-0114</p>
+                    <p className="font-bold text-lg">(317) 379-3141</p>
                   </div>
                 </a>
 
@@ -559,7 +594,7 @@ const App = () => {
           </div>
           <div className="flex items-center gap-4">
             <a 
-              href="tel:+14632710114" 
+              href="tel:+13173793141" 
               className="bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold py-2 px-4 rounded-md transition-colors flex items-center gap-2"
             >
               <Phone className="w-4 h-4" />
