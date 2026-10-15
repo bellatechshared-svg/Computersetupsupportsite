@@ -23,29 +23,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 // --- Utilities ---
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
-}
-
-async function submitToBackend(data: any) {
-  try {
-    const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-7ae92208/submit-contact`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${publicAnonKey}`
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  } catch (error) {
-    console.error("Submission error:", error);
-    return { success: false };
-  }
 }
 
 const SUPPORT_EMAIL = 'support@indianapcservices.com';
@@ -98,7 +80,6 @@ const ChatWidget = () => {
     setInputValue("");
 
     // Send to backend
-    submitToBackend({ type: 'chat', message: text, timestamp: new Date().toISOString() });
     sendToSupportEmail('New Website Chat Message', { message: text });
 
     // Simulate response
@@ -421,15 +402,12 @@ const ContactForm = () => {
   
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
-    const [emailSent] = await Promise.all([
-      sendToSupportEmail(`New Service Request from ${data.name}`, {
-        name: data.name,
-        location: data.location,
-        preferred_time: data.time || 'Not specified',
-        details: data.details
-      }),
-      submitToBackend({ ...data, type: 'form_submission' })
-    ]);
+    const emailSent = await sendToSupportEmail(`New Service Request from ${data.name}`, {
+      name: data.name,
+      location: data.location,
+      preferred_time: data.time || 'Not specified',
+      details: data.details
+    });
     setIsSubmitting(false);
     if (emailSent) {
       alert("Request Sent! We will contact you shortly.");
